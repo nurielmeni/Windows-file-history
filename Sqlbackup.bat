@@ -1,12 +1,12 @@
 @echo off
-set _msg = ""
-set _string=%~1
+setlocal enableDelayedExpansion 
+
 rem set directory="C:\Microsoft SQL Server Backup"
 rem sqlcmd -S .\SQLEXPRESS -E -Q "EXEC sp_BackupDatabases @backupLocation='C:\Microsoft SQL Server Backup\', @backupType='F'"
 
 
 rem Temp directory (for development only)
-set directory="C:\Users\Meni\Dev\rozentech\Windows file history\backups"
+set directory="C:\Users\Meni Nuriel\Dev\rozentech\Windows-file-history\backups"
 
 echo ---------------- Database backup batch ----------------------
 echo --- Backup Directory:  %directory%
@@ -15,40 +15,62 @@ echo -------------------------------------------------------------
 echo -
 echo - Loop through files in: Backup Directory
 
-setlocal enabledelayedexpansion
-for %%F in (%directory%\*) do (
-  for /f "delims=_" %%A in ("%%~nF") do (
-    set currentdir="%directory:"=%\%%A"
-    if not exist !currentdir! (
-      echo - Creating Directory: !currentdir!
-      md !currentdir! 2>nul
-    )
 
-    echo --- Moving File: "%%F"
-    move "%%F" !currentdir! 1>nul
+for %%F in (%directory%\*) do (
+
+  for /f "tokens=1 delims=_" %%A in ("%%~nF") do (
+    set currentdir="%directory:"=%\%%A"
+    set filterdir="%directory:"=%\%%A\*.BAK"
+    call :loopproject "%%A", %directory%, !currentdir!
   )
 
-  set _msg="--- Removing old files (keep at least 7)  ---"
-  echo %_msg:"=%
-  rem !currentdir! the bkup directory for the project
+  echo -
+  echo --- Removing old files - when more then 7 ---
+  echo - 
 
-  rem Count the number of files in the directory
-  set filstocount=!currentdir:"=%!\*.BAK
-  set cnt=0
-  for %%A in (%filstocount%) do set /a cnt+=1
-  echo - File count in the directory = %filstocount%
-  echo - File count in the directory = %cnt%
+  set /A count=0 & for %%x in (!filterdir!) do @(set /A count+=1 >nul) 
+  echo Num Files: !count!
+  set /A filestodelete = !count! - 7
 
+  echo DELETING: !filestodelete! Files
+  echo FROM: !currentdir!
+  echo ----------------------------------
+  call :removeoldestfile !currentdir!, !filestodelete!
+  echo ----------------------------------
 
+  rem FOR /L %%d IN (1,1,!filestodelete!) DO call :removeoldestfile !currentdir!
 )
-
 GOTO :eof
 
-:removepastfiles
-Rem *** This will delete all the files in the directory older then 7 days
-  echo [Remove Rutine Started]
-  set filter=*.bak
-  set days=7
-  FORFILES /P !currentdir! /M *.bak /C "CMD /c DEL @path && ECHO -- @path Deleted" /D -%days%
-GOTO :eof
+rem Functions
+
+:countfiles 
+    set /A numfiles = 0
+    for %%i in ("%~1") do set /A numfiles = numfiles + 1
+EXIT /B 0
+
+:loopproject
+  setlocal
+    if not exist "%~3" (
+      echo - Creating Directory: "%~3"
+      md "%~3" 2>nul
+    )
+    echo Current Dir: !currentdir!
+
+    for %%i in ("%~2\%~1*.BAK") do (
+      echo --- Moving File: "%%i"
+      move "%%i" "%~3" 1>nul
+    )
+  endlocal
+EXIT /B 0
+
+:removeoldestfile
+  set /A _count = %~2
+  for /f "delims=" %%f in ('dir /B /OD "%~1\*.BAK"') do (
+    if !_count!==0 EXIT /B 0
+    del "%~1\%%f"
+    echo -deleted- "%~1\%%f"
+    set /A _count-=1
+  ) 
+EXIT /B 0
 
