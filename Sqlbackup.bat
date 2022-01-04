@@ -67,7 +67,7 @@ EXIT /B 0
 :removeoldestfile
   set /A _count = %~2
   for /f "delims=" %%f in ('dir /B /OD "%~1\*.BAK"') do (
-    if !_count!==0 EXIT /B 0
+    if !_count! LEQ 0 EXIT /B 0
     del "%~1\%%f"
     echo -deleted- "%~1\%%f"
     set /A _count-=1
