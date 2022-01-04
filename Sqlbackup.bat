@@ -1,7 +1,7 @@
 @echo off
 setlocal enableDelayedExpansion 
 
-rem set directory="C:\Microsoft SQL Server Backup"
+rem set directory="E:\Backup"
 rem sqlcmd -S .\SQLEXPRESS -E -Q "EXEC sp_BackupDatabases @backupLocation='C:\Microsoft SQL Server Backup\', @backupType='F'"
 
 
